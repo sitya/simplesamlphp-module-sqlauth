@@ -153,6 +153,7 @@ class SQL extends \SimpleSAML\Module\core\Auth\UserPassBase
         }
 
         try {
+			$password = hash('sha512', $password);
             $sth->execute(['username' => $username, 'password' => $password]);
         } catch (PDOException $e) {
             throw new Exception('sqlauth:' . $this->authId .
@@ -180,27 +181,37 @@ class SQL extends \SimpleSAML\Module\core\Auth\UserPassBase
          * which are present in more than one row will become multivalued. null values and
          * duplicate values will be skipped. All values will be converted to strings.
          */
-        $attributes = [];
-        foreach ($data as $row) {
-            foreach ($row as $name => $value) {
-                if ($value === null) {
-                    continue;
-                }
+		$attributes = [];
+		foreach ($data as $row) {
+			foreach ($row as $name => $value) {
+				$name = $row['_key'];
+				$value  = $row['_value'];
 
-                $value = (string) $value;
+				if ($value === null) {
+					continue;
+				}
 
-                if (!array_key_exists($name, $attributes)) {
-                    $attributes[$name] = [];
-                }
+				if ($value === null || $name == null) {
+					continue;
+				}
 
-                if (in_array($value, $attributes[$name], true)) {
-                    // Value already exists in attribute
-                    continue;
-                }
+				if (!array_key_exists($name, $attributes)) {
+					$attributes[$name] = [];
+				}
 
-                $attributes[$name][] = $value;
-            }
-        }
+				$subvalues = explode(';', $value);
+				foreach ($subvalues as $subvalue) {
+					$subvalue = (string)$subvalue;
+
+					if (in_array($subvalue, $attributes[$name], true)) {
+						/* Value already exists in attribute. */
+						continue;
+					}
+
+					$attributes[$name][] = trim($subvalue);
+				}
+			}
+		}
 
         Logger::info('sqlauth:' . $this->authId . ': Attributes: ' . implode(',', array_keys($attributes)));
 
