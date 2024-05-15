@@ -284,7 +284,7 @@ class SQL extends UserPassBase
                 if (count($data) === 0) {
                     // No rows returned from first query - invalid username/password
                     Logger::error('sqlauth:' . $this->authId .
-                        ': No rows in result set. Probably wrong username/password.');
+                        ': No rows in result set. Probably wrong username/password. Username: ' . $username);
                     throw new Error\Error('WRONGUSERPASS');
                 }
                 /* Only the first query should be passed the password, as that is the only
